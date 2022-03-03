@@ -14,8 +14,6 @@ import com.google.inject.name.Named;
 import org.kairosdb.core.exception.DatastoreException;
 import org.kairosdb.core.reporting.ThreadReporter;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
@@ -131,26 +129,6 @@ public class YCQLFilteredRowKeyIterator implements Iterator<DataPointsRowKey> {
             throw new DatastoreException("Failed to read key index", e);
         }
     }
-
-    private ListenableFuture<ResultSet> queryRowKeys(
-            Object rowKeyLookup, String metricName, Long keyTime, SetMultimap<String, String> filterTags) {
-        Method m = null;
-        try {
-            m = rowKeyLookup.getClass().getDeclaredMethod("queryRowKeys");
-            // Using setAccessible() method
-            m.setAccessible(true);
-
-            // Using invoke() method
-            return (ListenableFuture<ResultSet>) m.invoke(this, new Object[]{metricName, keyTime, filterTags});
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
 
     private boolean matchRegexFilter(String tag, String value) {
         if (m_patternFilter.containsKey(tag)) {

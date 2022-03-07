@@ -22,6 +22,7 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.utils.UUIDs;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.SetMultimap;
@@ -66,8 +67,6 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import javax.inject.Named;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -897,8 +896,8 @@ public class YugabyteDatastore implements Datastore, ProcessorHandler, KairosMet
 						.setConsistencyLevel(cluster.getReadConsistencyLevel());
 				cluster.execute(statement);
 
-				Object rowKeyLookup = cluster.getRowKeyLookupForMetric(rowKey.getMetricName());
-				for (Statement rowKeyDeleteStmt : createDeleteStatements(rowKeyLookup, rowKey))
+				RowKeyLookup rowKeyLookup = cluster.getRowKeyLookupForMetric(rowKey.getMetricName());
+				for (Statement rowKeyDeleteStmt : rowKeyLookup.createDeleteStatements(rowKey))
 				{
 					rowKeyDeleteStmt.setConsistencyLevel(cluster.getReadConsistencyLevel());
 					cluster.execute(rowKeyDeleteStmt);
@@ -972,26 +971,7 @@ public class YugabyteDatastore implements Datastore, ProcessorHandler, KairosMet
 		if (clearCache)
 			m_rowKeyCache.clear();
 	}
-
-	private List<Statement> createDeleteStatements(
-			Object rowKeyLookup, DataPointsRowKey rowKey) {
-		Method m = null;
-		try {
-			m = rowKeyLookup.getClass().getDeclaredMethod("createDeleteStatements");
-			// Using setAccessible() method
-			m.setAccessible(true);
-
-			// Using invoke() method
-			return (List<Statement>) m.invoke(this, new Object[]{rowKey});
-		} catch (NoSuchMethodException e) {
-			throw new RuntimeException(e);
-		} catch (IllegalAccessException e) {
-			throw new RuntimeException(e);
-		} catch (InvocationTargetException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
+	
 	private SortedMap<String, String> getTags(DataPointRow row)
 	{
 		TreeMap<String, String> map = new TreeMap<String, String>();
